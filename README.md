@@ -1,3 +1,7 @@
+<p align="center">                                                                                                       
+  <img src="assets/sleepyminer-banner.jpg" alt="sleepyminer" width="640" />                                                     
+</p> 
+
 # sleepyminer
 
 A native RandomX (Monero / XMR) CPU miner for Apple Silicon. Mines while
