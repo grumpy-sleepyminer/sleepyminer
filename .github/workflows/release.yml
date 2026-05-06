@@ -1,0 +1,92 @@
+name: Release
+
+# Builds + signs + uploads sleepyminer release artifacts when a tag matching
+# v* is pushed. Tag the commit, push, and the rest is automatic.
+#
+# Required repo secrets:
+#   GPG_PRIVATE_KEY  — ASCII-armored private key for signing SHA256SUMS
+#   GPG_KEY_ID       — fingerprint of the signing key (40 hex chars)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build macOS arm64
+    runs-on: macos-14
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build release binary
+        run: cargo build --release --locked
+
+      - name: Run RandomX correctness tests
+        run: |
+          cd vendor/randomx
+          mkdir -p build && cd build
+          cmake -DCMAKE_BUILD_TYPE=Release ..
+          make -j$(sysctl -n hw.ncpu)
+          ./randomx-tests | tee tests.log
+          grep -q 'All tests PASSED' tests.log
+
+      - name: Determine version
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Stage release directory
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          STAGE="sleepyminer-${VERSION}-macos-arm64"
+          mkdir -p "$STAGE"
+          cp target/release/sleepyminer "$STAGE/"
+          cp README.md LICENSE CREDITS.md "$STAGE/"
+          cp config.example.json "$STAGE/" 2>/dev/null || true
+          tar czf "${STAGE}.tar.gz" "$STAGE"
+          shasum -a 256 "${STAGE}.tar.gz" > SHA256SUMS
+          echo "stage=$STAGE" >> "$GITHUB_ENV"
+
+      - name: Import GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          gpg --list-secret-keys --keyid-format=long
+
+      - name: Sign SHA256SUMS
+        env:
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        run: |
+          gpg --batch --yes --local-user "$GPG_KEY_ID" \
+              --detach-sign --armor SHA256SUMS
+
+      - name: Upload artifacts to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            sleepyminer-*-macos-arm64.tar.gz
+            SHA256SUMS
+            SHA256SUMS.asc
+          fail_on_unmatched_files: true
+          generate_release_notes: true

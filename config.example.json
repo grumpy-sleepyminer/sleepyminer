@@ -1,0 +1,24 @@
+{
+  "pools": [
+    {
+      "url": "gulf.moneroocean.stream:10128",
+      "wallet": "REPLACE_WITH_YOUR_MONERO_WALLET_ADDRESS",
+      "password": "sleepyminer",
+      "rig_id": null,
+      "nicehash": false,
+      "tls": false,
+      "keepalive": true,
+      "enabled": true,
+      "algo": "randomx"
+    }
+  ],
+  "threads": null,
+  "donate_level": 1,
+  "idle_threshold": 120,
+  "ramp_up_speed": 30,
+  "min_threads": 1,
+  "print_interval": 60,
+  "retries": 5,
+  "retry_pause": 5,
+  "verbose": false
+}

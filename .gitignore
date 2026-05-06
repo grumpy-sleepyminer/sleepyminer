@@ -1,0 +1,25 @@
+# Rust build artifacts
+/target
+
+# macOS
+.DS_Store
+
+# User config (never committed - per-user wallet/pool details)
+.sleepyminer/
+~/.sleepyminer/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Editor backups
+*~
+*.bak
+
+# Release helpers / local test output
+/dist
+/build
+*.tar.gz
+SHA256SUMS
+SHA256SUMS.sig
